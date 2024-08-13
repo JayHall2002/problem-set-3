@@ -40,11 +40,16 @@ def process_data(model_pred_df, genres_df):
     genre_fp_counts = {genre: 0 for genre in genre_list}
 
     # Process the rows in the Dataframe
-
     for _, row in model_pred_df.iterrows():
         actual_genres = ast.literal_eval(row['actual genres']) if isinstance(row['actual genres'], str) else [row['actual genres']]
         predicted_genre = row['predicted']
         is_correct = row['correct?']
+
+        # Handle missing genres
+        if predicted_genre not in genre_tp_counts:
+            print(f"Warning: Predicted genre '{predicted_genre}' is not in genre list.")
+            genre_tp_counts[predicted_genre] = 0
+            genre_fp_counts[predicted_genre] = 0
 
         if is_correct:
             genre_tp_counts[predicted_genre] += 1
@@ -52,8 +57,11 @@ def process_data(model_pred_df, genres_df):
             genre_fp_counts[predicted_genre] += 1
         
         for genre in actual_genres:
-            genre_true_counts[genre] += 1
+            if genre:  # This will skip empty strings
+                if genre not in genre_true_counts:
+                    print(f"Warning: Actual genre '{genre}' is not in genre list.")
+                    continue
+                genre_true_counts[genre] += 1
+
     
     return genre_list, genre_true_counts, genre_tp_counts, genre_fp_counts
-
-

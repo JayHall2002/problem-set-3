@@ -41,12 +41,13 @@ def calculate_metrics(model_pred_df, genre_list, genre_true_counts, genre_tp_cou
 
     # Initialize metrics
     micro_tp = sum(genre_tp_counts.values())
-    micro_fp = sum(genre_fp_counts())
-    micro_fn = sum(genre_true_counts[genre] - genre_tp_counts[genre] for genre in genre_list)
+    micro_fp = sum(genre_fp_counts.values())
+    micro_fn = sum(genre_true_counts.values()) - micro_tp
     
     micro_precision = micro_tp / (micro_tp + micro_fp) if (micro_tp + micro_fp) > 0 else 0
     micro_recall = micro_tp / (micro_tp + micro_fn) if (micro_tp + micro_fn) > 0 else 0
     micro_f1 = 2 * (micro_precision * micro_recall) / (micro_precision + micro_recall) if (micro_precision + micro_recall) > 0 else 0
+
 
     macro_prec_list = []
     macro_recall_list = []
