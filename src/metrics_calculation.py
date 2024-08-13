@@ -9,6 +9,7 @@ PART 2: METRICS CALCULATION
 import numpy as np
 from sklearn.metrics import precision_recall_fscore_support
 import pandas as pd
+import ast
 
 def calculate_metrics(model_pred_df, genre_list, genre_true_counts, genre_tp_counts, genre_fp_counts):
     '''
@@ -38,9 +39,35 @@ def calculate_metrics(model_pred_df, genre_list, genre_true_counts, genre_tp_cou
 
     '''
 
-    # Your code here
-
+    # Initialize metrics
+    micro_tp = sum(genre_tp_counts.values())
+    micro_fp = sum(genre_fp_counts())
+    micro_fn = sum(genre_true_counts[genre] - genre_tp_counts[genre] for genre in genre_list)
     
+    micro_precision = micro_tp / (micro_tp + micro_fp) if (micro_tp + micro_fp) > 0 else 0
+    micro_recall = micro_tp / (micro_tp + micro_fn) if (micro_tp + micro_fn) > 0 else 0
+    micro_f1 = 2 * (micro_precision * micro_recall) / (micro_precision + micro_recall) if (micro_precision + micro_recall) > 0 else 0
+
+    macro_prec_list = []
+    macro_recall_list = []
+    macro_f1_list = []
+
+    for genre in genre_list:
+        tp = genre_tp_counts[genre]
+        fp = genre_fp_counts[genre]
+        fn = genre_true_counts[genre] - tp
+
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+        
+        macro_prec_list.append(precision)
+        macro_recall_list.append(recall)
+        macro_f1_list.append(f1)
+    return micro_precision, micro_recall, micro_f1, macro_prec_list, macro_recall_list, macro_f1_list
+
+
+
 def calculate_sklearn_metrics(model_pred_df, genre_list):
     '''
     Calculate metrics using sklearn's precision_recall_fscore_support.
@@ -61,4 +88,24 @@ def calculate_sklearn_metrics(model_pred_df, genre_list):
     true_matrix = pd.DataFrame(true_rows)
     '''
 
-    # Your code here
+    # Convert the genres to a format compatible with sklearn
+
+    pred_rows = []
+    true_rows = []
+
+    for _, row in model_pred_df.iterrows():
+        actual_genres = ast.literal_eval(row['actual genres']) if isinstance(row['actual genres'], str) else [row['actual genres']]
+        predicted_genre = row['predicted']
+        true_rows.extend([predicted_genre] * len(actual_genres))
+        pred_rows.extend(actual_genres)
+
+    # Calculate metrics 
+    pred_matrix = pd.DataFrame({'predicted': pred_rows})
+    true_matrix = pd.DataFrame({'true' : true_rows})
+
+    # Calculate metrics
+
+    macro_prec, macro_rec, macro_f1, _ = precision_recall_fscore_support(true_matrix['true'], pred_matrix['predicted'], average='macro', zero_division=0)
+    micro_prec, micro_rec, micro_f1, _ = precision_recall_fscore_support(true_matrix['true'], pred_matrix['predicted'], average='micro', zero_division=0)
+
+    return macro_prec, macro_rec, macro_f1, micro_prec, micro_rec, micro_f1, 
